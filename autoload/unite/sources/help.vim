@@ -1,6 +1,6 @@
 " help source for unite.vim
 " Version:     0.0.3
-" Last Change: 31 May 2011.
+" Last Change: 01 Jun 2011.
 " Author:      tsukkee <takayuki0510 at gmail.com>
 " Modified:    Shougo <Shougo.Matsu at gmail.com>
 " Licence:     The MIT License {{{
@@ -70,7 +70,7 @@ let s:source = {
             \   'default_action': {'common': 'execute'}
             \}
 function! s:source.gather_candidates(args, context)
-    let should_refresh = a:context.is_force || empty(s:cache)
+    let should_refresh = a:context.is_redraw || empty(s:cache)
     let lang_filter = []
     for arg in a:args
         if arg == '!'
