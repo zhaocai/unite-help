@@ -1,6 +1,6 @@
 " help source for unite.vim
 " Version:     0.0.3
-" Last Change: 15 Nov 2010
+" Last Change: 25 Jun 2011.
 " Author:      tsukkee <takayuki0510 at gmail.com>
 " Licence:     The MIT License {{{
 "     Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -24,7 +24,7 @@
 
 " define source
 function! unite#sources#help#define()
-    return s:source
+    return unite#util#has_vimproc() ? s:source : {}
 endfunction
 
 
@@ -33,14 +33,14 @@ let s:cache = []
 function! unite#sources#help#refresh()
     let s:cache = []
 endfunction
+let s:vimproc_files = {}
 
 " source
 let s:source = {
 \   'name': 'help',
 \   'max_candidates': 50,
-\   'required_pattern_length': 1,
 \   'action_table': {},
-\   'default_action': {'common': 'execute'}
+\   'default_action': { '*': 'execute' }
 \}
 function! s:source.gather_candidates(args, context)
     let should_refresh = a:context.is_redraw
@@ -60,35 +60,65 @@ function! s:source.gather_candidates(args, context)
     endif
 
     if empty(s:cache)
+        " load files.
+        let s:vimproc_files = {}
         for tagfile in split(globpath(&runtimepath, 'doc/{tags,tags-*}'), "\n")
             if !filereadable(tagfile) | continue | endif
 
-            let lang = matchstr(tagfile, 'tags-\zs[a-z]\{2\}')
-            let place = fnamemodify(expand(tagfile), ':p:h:h:t')
-
-            for line in readfile(tagfile)
-                let name = split(line, "\t")[0]
-                let word = name . '@' . (!empty(lang) ? lang : 'en')
-                let abbr = printf(
-                      \ "%s%s (in %s)", name, !empty(lang) ? '@' . lang : '', place)
-
-                " if not comment line
-                if stridx(name, "!") != 0
-                    call add(s:cache, {
-                    \   'word':   word,
-                    \   'abbr':   abbr,
-                    \   'kind':   'common',
-                    \   'source': 'help',
-                    \   'action__command': 'help ' . word,
-                    \   'source__lang'   : !empty(lang) ? lang : 'en'
-                    \})
-                endif
-            endfor
+            let file = {
+                        \ 'proc' : vimproc#fopen(tagfile, 'r'),
+                        \ 'lang' : matchstr(tagfile, 'tags-\zs[a-z]\{2\}'),
+                        \ 'path': fnamemodify(expand(tagfile), ':p:h:h:t'),
+                        \ }
+            let s:vimproc_files[tagfile] = file
         endfor
     endif
 
+    let a:context.source__lang_filter = lang_filter
     return filter(copy(s:cache),
-    \   'empty(lang_filter) || index(lang_filter, v:val.source__lang) != -1')
+    \   'empty(a:context.source__lang_filter) || index(a:context.source__lang_filter, v:val.source__lang) != -1')
+endfunction
+function! s:source.async_gather_candidates(args, context)
+    let list = []
+    let cnt = 0
+    for [key, file] in items(s:vimproc_files)
+        while !file.proc.eof
+            let line = file.proc.read_line()
+            if line == '' || line[0] == '!'
+                continue
+            endif
+
+            let name = split(line, "\t")[0]
+            let word = name . '@' . (file.lang != '' ? file.lang : 'en')
+            let abbr = printf("%s%s (in %s)",
+                        \ name, ((file.lang != '') ? '@' . file.lang : ''), file.path)
+
+            call add(list, {
+                        \ 'word':   word,
+                        \ 'abbr':   abbr,
+                        \ 'action__command': 'help ' . word,
+                        \ 'source__lang'   : file.lang != '' ? file.lang : 'en'
+                        \})
+
+            let cnt += 1
+            if cnt > 400
+                break
+            endif
+        endwhile
+
+        if file.proc.eof
+            call remove(s:vimproc_files, key)
+        endif
+    endfor
+
+    if empty(s:vimproc_files)
+        let a:context.is_async = 0
+        call unite#print_message('[help] Completed.')
+    endif
+    let s:cache += list
+
+    return filter(list,
+    \   'empty(a:context.source__lang_filter) || index(a:context.source__lang_filter, v:val.source__lang) != -1')
 endfunction
 
 
@@ -117,3 +147,4 @@ endfunction
 
 let s:source.action_table.common = s:action_table
 
+" vim: expandtab:ts=4:sts=4:sw=4
