@@ -1,6 +1,6 @@
 " help source for unite.vim
 " Version:     0.0.3
-" Last Change: 25 Jun 2011.
+" Last Change: 26 Jun 2011.
 " Author:      tsukkee <takayuki0510 at gmail.com>
 " Licence:     The MIT License {{{
 "     Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -75,8 +75,13 @@ function! s:source.gather_candidates(args, context)
     endif
 
     let a:context.source__lang_filter = lang_filter
-    return filter(copy(s:cache),
-    \   'empty(a:context.source__lang_filter) || index(a:context.source__lang_filter, v:val.source__lang) != -1')
+    let list = copy(s:cache)
+    if !empty(a:context.source__lang_filter)
+        call filter(list, 'empty(a:context.source__lang_filter)
+                    \    || index(a:context.source__lang_filter, v:val.source__lang) != -1')
+    endif
+
+    return list
 endfunction
 function! s:source.async_gather_candidates(args, context)
     let list = []
@@ -117,8 +122,13 @@ function! s:source.async_gather_candidates(args, context)
     endif
     let s:cache += list
 
-    return filter(list,
-    \   'empty(a:context.source__lang_filter) || index(a:context.source__lang_filter, v:val.source__lang) != -1')
+    if !empty(a:context.source__lang_filter)
+        call filter(list,
+                    \   'empty(a:context.source__lang_filter)
+                    \    || index(a:context.source__lang_filter, v:val.source__lang) != -1')
+    endif
+
+    return list
 endfunction
 
 
