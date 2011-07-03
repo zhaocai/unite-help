@@ -1,6 +1,6 @@
 " help source for unite.vim
 " Version:     0.0.3
-" Last Change: 26 Jun 2011.
+" Last Change: 03 Jul 2011.
 " Author:      tsukkee <takayuki0510 at gmail.com>
 " Licence:     The MIT License {{{
 "     Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -66,7 +66,7 @@ function! s:source.gather_candidates(args, context)
             if !filereadable(tagfile) | continue | endif
 
             let file = {
-                        \ 'proc' : vimproc#fopen(tagfile, 'r'),
+                        \ 'proc' : vimproc#fopen(tagfile, 'O_RDONLY'),
                         \ 'lang' : matchstr(tagfile, 'tags-\zs[a-z]\{2\}'),
                         \ 'path': fnamemodify(expand(tagfile), ':p:h:h:t'),
                         \ }
