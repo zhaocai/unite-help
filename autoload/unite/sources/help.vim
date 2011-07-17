@@ -87,7 +87,7 @@ endfunction
 function! s:source.async_gather_candidates(args, context)
     let list = []
     for [key, file] in items(s:vimproc_files)
-        let lines = file.proc.read_lines(2048, 500)
+        let lines = file.proc.read_lines(300, 500)
         " echomsg string([file.path, len(lines)])
         for line in lines
             if line == '' || line[0] == '!'
@@ -128,9 +128,6 @@ function! s:source.async_gather_candidates(args, context)
     return list
 endfunction
 function! s:source.hooks.on_close(args, context)
-    for file in values(s:vimproc_files)
-        call file.proc.close()
-    endfor
 endfunction
 
 " action
