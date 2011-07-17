@@ -1,6 +1,6 @@
 " help source for unite.vim
 " Version:     0.0.3
-" Last Change: 03 Jul 2011.
+" Last Change: 17 Jul 2011.
 " Author:      tsukkee <takayuki0510 at gmail.com>
 " Licence:     The MIT License {{{
 "     Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -40,6 +40,7 @@ let s:source = {
 \   'name': 'help',
 \   'max_candidates': 50,
 \   'action_table': {},
+\   'hooks': {},
 \   'default_action': { '*': 'execute' }
 \}
 function! s:source.gather_candidates(args, context)
@@ -85,10 +86,10 @@ function! s:source.gather_candidates(args, context)
 endfunction
 function! s:source.async_gather_candidates(args, context)
     let list = []
-    let cnt = 0
     for [key, file] in items(s:vimproc_files)
-        while !file.proc.eof
-            let line = file.proc.read_line()
+        let lines = file.proc.read_lines(2048, 500)
+        " echomsg string([file.path, len(lines)])
+        for line in lines
             if line == '' || line[0] == '!'
                 continue
             endif
@@ -104,14 +105,10 @@ function! s:source.async_gather_candidates(args, context)
                         \ 'action__command': 'help ' . word,
                         \ 'source__lang'   : file.lang != '' ? file.lang : 'en'
                         \})
-
-            let cnt += 1
-            if cnt > 400
-                break
-            endif
-        endwhile
+        endfor
 
         if file.proc.eof
+            call file.proc.close()
             call remove(s:vimproc_files, key)
         endif
     endfor
@@ -130,7 +127,11 @@ function! s:source.async_gather_candidates(args, context)
 
     return list
 endfunction
-
+function! s:source.hooks.on_close(args, context)
+    for file in values(s:vimproc_files)
+        call file.proc.close()
+    endfor
+endfunction
 
 " action
 let s:action_table = {}
