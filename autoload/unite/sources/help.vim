@@ -1,6 +1,6 @@
 " help source for unite.vim
 " Version:     0.0.3
-" Last Change: 17 Jul 2011.
+" Last Change: 01 Oct 2012.
 " Author:      tsukkee <takayuki0510 at gmail.com>
 " Licence:     The MIT License {{{
 "     Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -70,16 +70,22 @@ function! s:source.gather_candidates(args, context)
                         \ 'proc' : vimproc#fopen(tagfile, 'O_RDONLY'),
                         \ 'lang' : matchstr(tagfile, 'tags-\zs[a-z]\{2\}'),
                         \ 'path': fnamemodify(expand(tagfile), ':p:h:h:t'),
+                        \ 'max' : len(readfile(tagfile)),
+                        \ 'lnum' : 0,
                         \ }
             let s:vimproc_files[tagfile] = file
         endfor
+
+        let a:context.source__cont_number = 0
+        let a:context.source__cont_max = len(s:vimproc_files)
     endif
 
     let a:context.source__lang_filter = lang_filter
     let list = copy(s:cache)
     if !empty(a:context.source__lang_filter)
         call filter(list, 'empty(a:context.source__lang_filter)
-                    \    || index(a:context.source__lang_filter, v:val.source__lang) != -1')
+                    \    || index(a:context.source__lang_filter,
+                    \        v:val.source__lang) != -1')
     endif
 
     return list
@@ -87,8 +93,23 @@ endfunction
 function! s:source.async_gather_candidates(args, context)
     let list = []
     for [key, file] in items(s:vimproc_files)
-        let lines = file.proc.read_lines(300, 500)
-        " echomsg string([file.path, len(lines)])
+        let lines = file.proc.read_lines(1000, 2000)
+
+        " Show progress.
+        let file.lnum += len(lines)
+        let progress = (file.lnum * 100) / file.max
+        if progress > 100
+            let progress = 100
+        endif
+
+        call unite#clear_message()
+
+        call unite#print_message(
+                    \    printf('[help] [%2d/%2d] Making cache of "%s"...%d%%',
+                    \      a:context.source__cont_number,
+                    \      a:context.source__cont_max,
+                    \      file.path, progress))
+
         for line in lines
             if line == '' || line[0] == '!'
                 continue
@@ -110,6 +131,7 @@ function! s:source.async_gather_candidates(args, context)
         if file.proc.eof
             call file.proc.close()
             call remove(s:vimproc_files, key)
+            let a:context.source__cont_number += 1
         endif
     endfor
 
