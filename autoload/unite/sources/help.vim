@@ -92,7 +92,7 @@ function! s:source.gather_candidates(args, context)
     if !empty(s:cache)
         let list = copy(s:cache)
 
-        return s:filter_list(list)
+        return s:filter_list(list, a:context)
     endif
 
     " load files.
@@ -160,7 +160,7 @@ function! s:source.async_gather_candidates(args, context)
         endif
     endfor
 
-    call s:filter_list(list)
+    call s:filter_list(list, a:context)
 
     let s:cache += list
     if empty(s:vimproc_files)
@@ -178,7 +178,7 @@ endfunction
 function! s:source.hooks.on_close(args, context)
 endfunction
 
-function! s:filter_list(list)
+function! s:filter_list(list, context)
     call filter(a:list, 'stridx(v:val.word, a:context.source__input) >= 0')
     if !empty(a:context.source__lang_filter)
         call filter(a:list, 'index(a:context.source__lang_filter,
