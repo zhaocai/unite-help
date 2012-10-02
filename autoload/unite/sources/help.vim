@@ -64,6 +64,12 @@ function! s:source.hooks.on_init(args, context)
     endfor
 
     let a:context.source__lang_filter = lang_filter
+
+    let a:context.source__input = a:context.input
+    if a:context.source__input == ''
+        let a:context.source__input =
+                    \ input('Please input search word: ', '', 'help')
+    endif
 endfunction
 function! s:source.gather_candidates(args, context)
     let should_refresh = a:context.is_redraw
@@ -85,12 +91,8 @@ function! s:source.gather_candidates(args, context)
 
     if !empty(s:cache)
         let list = copy(s:cache)
-        if !empty(a:context.source__lang_filter)
-            call filter(list, 'index(a:context.source__lang_filter,
-                        \        v:val.source__lang) != -1')
-        endif
 
-        return list
+        return s:filter_list(list)
     endif
 
     " load files.
@@ -158,10 +160,7 @@ function! s:source.async_gather_candidates(args, context)
         endif
     endfor
 
-    if !empty(a:context.source__lang_filter)
-        call filter(list, 'index(a:context.source__lang_filter,
-                    \        v:val.source__lang) != -1')
-    endif
+    call s:filter_list(list)
 
     let s:cache += list
     if empty(s:vimproc_files)
@@ -177,6 +176,16 @@ function! s:source.async_gather_candidates(args, context)
     return list
 endfunction
 function! s:source.hooks.on_close(args, context)
+endfunction
+
+function! s:filter_list(list)
+    call filter(a:list, 'stridx(v:val.word, a:context.source__input) >= 0')
+    if !empty(a:context.source__lang_filter)
+        call filter(a:list, 'index(a:context.source__lang_filter,
+                    \        v:val.source__lang) != -1')
+    endif
+
+    return a:list
 endfunction
 
 " action
