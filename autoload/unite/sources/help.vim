@@ -1,6 +1,6 @@
 " help source for unite.vim
 " Version:     0.0.3
-" Last Change: 01 Oct 2012.
+" Last Change: 02 Oct 2012.
 " Author:      tsukkee <takayuki0510 at gmail.com>
 " Licence:     The MIT License {{{
 "     Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -27,11 +27,18 @@ function! unite#sources#help#define()
     return unite#util#has_vimproc() ? s:source : {}
 endfunction
 
+let s:Cache = vital#of('unite.vim').import('System.Cache')
 
 " cache
 let s:cache = []
 function! unite#sources#help#refresh()
     let s:cache = []
+
+    let cache_dir = g:unite_data_directory . '/help'
+    if s:Cache.filereadable(cache_dir, 'help-cache')
+        " Delete cache file.
+        call s:Cache.delete(cache_dir, 'help-cache')
+    endif
 endfunction
 let s:vimproc_files = {}
 
@@ -41,10 +48,10 @@ let s:source = {
 \   'max_candidates': 50,
 \   'action_table': {},
 \   'hooks': {},
-\   'default_action': { '*': 'execute' }
+\   'default_action': 'execute',
+\   'filters' : ['matcher_default', 'sorter_word', 'converter_default'],
 \}
-function! s:source.gather_candidates(args, context)
-    let should_refresh = a:context.is_redraw
+function! s:source.hooks.on_init(args, context)
     let lang_filter = []
     for arg in a:args
         if arg == '!'
@@ -56,39 +63,55 @@ function! s:source.gather_candidates(args, context)
         endif
     endfor
 
+    let a:context.source__lang_filter = lang_filter
+endfunction
+function! s:source.gather_candidates(args, context)
+    let should_refresh = a:context.is_redraw
+
     if should_refresh
         call unite#sources#help#refresh()
+        let a:context.is_async = 1
     endif
 
-    if empty(s:cache)
-        " load files.
-        let s:vimproc_files = {}
-        for tagfile in split(globpath(&runtimepath, 'doc/{tags,tags-*}'), "\n")
-            if !filereadable(tagfile) | continue | endif
+    let cache_dir = g:unite_data_directory . '/help'
+    if s:Cache.filereadable(cache_dir, 'help-cache')
+        " Use cache file.
+        let s:cache = eval(get(s:Cache.readfile(
+                    \ cache_dir, 'help-cache'), 0, '[]'))
 
-            let file = {
-                        \ 'proc' : vimproc#fopen(tagfile, 'O_RDONLY'),
-                        \ 'lang' : matchstr(tagfile, 'tags-\zs[a-z]\{2\}'),
-                        \ 'path': fnamemodify(expand(tagfile), ':p:h:h:t'),
-                        \ 'max' : len(readfile(tagfile)),
-                        \ 'lnum' : 0,
-                        \ }
-            let s:vimproc_files[tagfile] = file
-        endfor
-
-        let a:context.source__cont_number = 0
-        let a:context.source__cont_max = len(s:vimproc_files)
+        let a:context.is_async = 0
+        call unite#print_message('[help] Completed.')
     endif
 
-    let a:context.source__lang_filter = lang_filter
-    let list = copy(s:cache)
-    if !empty(a:context.source__lang_filter)
-        call filter(list, 'empty(a:context.source__lang_filter)
-                    \    || index(a:context.source__lang_filter,
-                    \        v:val.source__lang) != -1')
+    if !empty(s:cache)
+        let list = copy(s:cache)
+        if !empty(a:context.source__lang_filter)
+            call filter(list, 'index(a:context.source__lang_filter,
+                        \        v:val.source__lang) != -1')
+        endif
+
+        return list
     endif
 
-    return list
+    " load files.
+    let s:vimproc_files = {}
+    for tagfile in split(globpath(&runtimepath, 'doc/{tags,tags-*}'), "\n")
+        if !filereadable(tagfile) | continue | endif
+
+        let file = {
+                    \ 'proc' : vimproc#fopen(tagfile, 'O_RDONLY'),
+                    \ 'lang' : matchstr(tagfile, 'tags-\zs[a-z]\{2\}'),
+                    \ 'path': fnamemodify(expand(tagfile), ':p:h:h:t'),
+                    \ 'max' : len(readfile(tagfile)),
+                    \ 'lnum' : 0,
+                    \ }
+        let s:vimproc_files[tagfile] = file
+    endfor
+
+    let a:context.source__cont_number = 1
+    let a:context.source__cont_max = len(s:vimproc_files)
+
+    return []
 endfunction
 function! s:source.async_gather_candidates(args, context)
     let list = []
@@ -135,16 +158,20 @@ function! s:source.async_gather_candidates(args, context)
         endif
     endfor
 
+    if !empty(a:context.source__lang_filter)
+        call filter(list, 'index(a:context.source__lang_filter,
+                    \        v:val.source__lang) != -1')
+    endif
+
+    let s:cache += list
     if empty(s:vimproc_files)
         let a:context.is_async = 0
         call unite#print_message('[help] Completed.')
-    endif
-    let s:cache += list
 
-    if !empty(a:context.source__lang_filter)
-        call filter(list,
-                    \   'empty(a:context.source__lang_filter)
-                    \    || index(a:context.source__lang_filter, v:val.source__lang) != -1')
+        " Save cache file.
+        let cache_dir = g:unite_data_directory . '/help'
+        call s:Cache.writefile(cache_dir, 'help-cache',
+                    \ [string(s:cache)])
     endif
 
     return list
