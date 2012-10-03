@@ -1,6 +1,6 @@
 " help source for unite.vim
 " Version:     0.0.3
-" Last Change: 02 Oct 2012.
+" Last Change: 03 Oct 2012.
 " Author:      tsukkee <takayuki0510 at gmail.com>
 " Licence:     The MIT License {{{
 "     Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -70,6 +70,9 @@ function! s:source.hooks.on_init(args, context)
         let a:context.source__input =
                     \ input('Please input search word: ', '', 'help')
     endif
+
+    call unite#print_source_message('Search word: '
+                \ . a:context.source__input, s:source.name)
 endfunction
 function! s:source.gather_candidates(args, context)
     let should_refresh = a:context.is_redraw
@@ -86,7 +89,7 @@ function! s:source.gather_candidates(args, context)
                     \ cache_dir, 'help-cache'), 0, '[]'))
 
         let a:context.is_async = 0
-        call unite#print_message('[help] Completed.')
+        call unite#print_source_message('Completed.', s:source.name)
     endif
 
     if !empty(s:cache)
@@ -129,11 +132,11 @@ function! s:source.async_gather_candidates(args, context)
 
         call unite#clear_message()
 
-        call unite#print_message(
-                    \    printf('[help] [%2d/%2d] Making cache of "%s"...%d%%',
+        call unite#print_source_message(
+                    \    printf('[%2d/%2d] Making cache of "%s"...%d%%',
                     \      a:context.source__cont_number,
                     \      a:context.source__cont_max,
-                    \      file.path, progress))
+                    \      file.path, progress), s:source.name)
 
         for line in lines
             if line == '' || line[0] == '!'
@@ -165,7 +168,7 @@ function! s:source.async_gather_candidates(args, context)
     let s:cache += list
     if empty(s:vimproc_files)
         let a:context.is_async = 0
-        call unite#print_message('[help] Completed.')
+        call unite#print_source_message('Completed.', source.name)
 
         " Save cache file.
         let cache_dir = g:unite_data_directory . '/help'
