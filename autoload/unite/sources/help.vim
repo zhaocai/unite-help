@@ -1,6 +1,6 @@
 " help source for unite.vim
 " Version:     0.0.3
-" Last Change: 03 Oct 2012.
+" Last Change: 05 Oct 2012.
 " Author:      tsukkee <takayuki0510 at gmail.com>
 " Licence:     The MIT License {{{
 "     Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -168,7 +168,7 @@ function! s:source.async_gather_candidates(args, context)
     let s:cache += list
     if empty(s:vimproc_files)
         let a:context.is_async = 0
-        call unite#print_source_message('Completed.', source.name)
+        call unite#print_source_message('Completed.', s:source.name)
 
         " Save cache file.
         let cache_dir = g:unite_data_directory . '/help'
