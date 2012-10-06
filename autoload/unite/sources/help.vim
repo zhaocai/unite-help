@@ -1,6 +1,6 @@
 " help source for unite.vim
 " Version:     0.0.3
-" Last Change: 05 Oct 2012.
+" Last Change: 06 Oct 2012.
 " Author:      tsukkee <takayuki0510 at gmail.com>
 " Licence:     The MIT License {{{
 "     Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -163,8 +163,6 @@ function! s:source.async_gather_candidates(args, context)
         endif
     endfor
 
-    call s:filter_list(list, a:context)
-
     let s:cache += list
     if empty(s:vimproc_files)
         let a:context.is_async = 0
@@ -176,7 +174,7 @@ function! s:source.async_gather_candidates(args, context)
                     \ [string(s:cache)])
     endif
 
-    return list
+    return s:filter_list(list, a:context)
 endfunction
 function! s:source.hooks.on_close(args, context)
 endfunction
