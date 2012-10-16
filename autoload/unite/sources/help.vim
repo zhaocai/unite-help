@@ -1,6 +1,6 @@
 " help source for unite.vim
 " Version:     0.0.3
-" Last Change: 06 Oct 2012.
+" Last Change: 16 Oct 2012.
 " Author:      tsukkee <takayuki0510 at gmail.com>
 " Licence:     The MIT License {{{
 "     Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -68,7 +68,7 @@ function! s:source.hooks.on_init(args, context)
     let a:context.source__input = a:context.input
     if a:context.source__input == ''
         let a:context.source__input =
-                    \ input('Please input search word: ', '', 'help')
+                    \ unite#util#input('Please input search word: ', '', 'help')
     endif
 
     call unite#print_source_message('Search word: '
