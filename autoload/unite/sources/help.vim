@@ -1,6 +1,6 @@
 " help source for unite.vim
 " Version:     0.0.3
-" Last Change: 16 Oct 2012.
+" Last Change: 13 Dec 2012.
 " Author:      tsukkee <takayuki0510 at gmail.com>
 " Licence:     The MIT License {{{
 "     Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -31,6 +31,8 @@ let s:Cache = vital#of('unite.vim').import('System.Cache')
 
 " cache
 let s:cache = []
+let s:cont_number = 0
+let s:cont_max = 0
 function! unite#sources#help#refresh()
     let s:cache = []
 
@@ -113,8 +115,8 @@ function! s:source.gather_candidates(args, context)
         let s:vimproc_files[tagfile] = file
     endfor
 
-    let a:context.source__cont_number = 1
-    let a:context.source__cont_max = len(s:vimproc_files)
+    let s:cont_number = 1
+    let s:cont_max = len(s:vimproc_files)
 
     return []
 endfunction
@@ -134,8 +136,7 @@ function! s:source.async_gather_candidates(args, context)
 
         call unite#print_source_message(
                     \    printf('[%2d/%2d] Making cache of "%s"...%d%%',
-                    \      a:context.source__cont_number,
-                    \      a:context.source__cont_max,
+                    \      s:cont_number, s:cont_max,
                     \      file.path, progress), s:source.name)
 
         for line in lines
@@ -159,7 +160,7 @@ function! s:source.async_gather_candidates(args, context)
         if file.proc.eof
             call file.proc.close()
             call remove(s:vimproc_files, key)
-            let a:context.source__cont_number += 1
+            let s:cont_number += 1
         endif
     endfor
 
