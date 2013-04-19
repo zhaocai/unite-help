@@ -24,7 +24,7 @@ Licence:     The MIT License
 
 
 ==============================================================================
-INTRODUCTION						*unite-tag-introduction*
+INTRODUCTION						*unite-help-introduction*
 
 *unite-help* is a |unite.vim| plugin for |help|.
 
@@ -36,7 +36,7 @@ https://github.com/tsukkee/unite-help
 
 
 ==============================================================================
-USAGE							*unite-tag-usage*
+USAGE							*unite-help-usage*
 
 Simply, execute |:Unite| with argument of help
 >
